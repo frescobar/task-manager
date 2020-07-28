@@ -1,6 +1,7 @@
 const express = require("express");
 const router = new express.Router();
 const User = require("../models/user");
+const { findById } = require("../models/user");
 
 //User POST route
 router.post("/users", async (req, res) => {
@@ -39,11 +40,19 @@ router.get("/users/:id", async (req, res) => {
 
 //User UPDATE route
 router.patch("/users/:id", async (req, res) => {
+  const updates = Object.keys(req.body);
+  const allowedUpdates = ["name", "email", "password", "age"];
+  const isValidUpdate = updates.every((update) =>
+    allowedUpdates.includes(update)
+  );
+
+  if (!isValidUpdate) {
+    return res.status(400).json({ message: "Invalid update" });
+  }
   try {
-    const user = await User.findByIdAndUpdate(req.params.id, req.body, {
-      new: true,
-      runValidators: true,
-    });
+    const user = await User.findById(req.params.id);
+    updates.forEach((update) => (user[update] = req.body[update]));
+    await user.save();
     if (!user) {
       return res.status(404).json({ message: "Not found" });
     }
